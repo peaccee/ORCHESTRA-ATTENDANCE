@@ -81,7 +81,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}
 </div>
 <div class="add-row"><button class="primary" onclick="addPerson()">＋新增人員</button></div>
 <hr style="border:0;border-top:1px solid #eee;margin:18px 0">
-<h3>現有人員</h3><div id="peopleAdmin" class="admin-list"></div>
+<h3>現有人員</h3><p style="font-size:12px;color:#777">同一樂器內可用 ↑ ↓ 調整顯示順序。</p><div id="peopleAdmin" class="admin-list"></div>
 </div></div>
 <div id="adminStats" class="admin-page" style="display:none">
 <div class="panel"><h3>各堂課出席統計</h3><div class="table-wrap"><div id="statsAdmin"></div></div></div>
@@ -116,7 +116,7 @@ const SUPABASE_URL="https://tbfvggfsdloelspsqqlx.supabase.co";
 const SUPABASE_KEY="sb_publishable_egHaaiyX45qSvApEO8_lwQ_u0l_9aew";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let courses=[], people=[], attendance={}, currentDateId=null, currentRole="all", noteTarget=null, refreshTimer=null;
+let courses=[], people=[], attendance={}, currentDateId=null, currentRole="all", noteTarget=null, refreshTimer=null, openGroups=new Set();
 const instrumentOrder=["第一小提琴","第二小提琴","中提琴","大提琴","低音提琴","長笛","雙簧管","單簧管","低音管","法國號","小號","長號","低音號","打擊"];
 
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("'","&#39;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
@@ -125,7 +125,7 @@ async function loadAll(){
  document.getElementById("syncStatus")?.replaceChildren();
  const [{data:c,error:ce},{data:p,error:pe}]=await Promise.all([
   sb.from("courses").select("*").order("sort_order").order("id"),
-  sb.from("people").select("*").eq("active",true).order("instrument").order("name")
+  sb.from("people").select("*").eq("active",true).order("instrument").order("sort_order",{ascending:true}).order("id")
  ]);
  if(ce||pe){console.error(ce||pe);document.getElementById("instruments").innerHTML='<div class="empty">資料載入失敗，請確認 Supabase 設定。</div>';return}
  courses=c||[];people=p||[];
@@ -153,7 +153,7 @@ function render(){
  visible.forEach(x=>{if(getStatus(x.id)==="present")p++;if(getStatus(x.id)==="leave")l++});
  document.getElementById("presentN").textContent=p;document.getElementById("leaveN").textContent=l;document.getElementById("absentN").textContent=total-p-l;
  document.getElementById("rateN").textContent=total?Math.round(p/total*100)+"%":"0%";document.getElementById("bar").style.width=total?Math.round(p/total*100)+"%":"0%";
- let out="";Object.entries(grouped()).forEach(([g,ns])=>{if(!ns.length)return;let open=localStorage.getItem("open_"+g)!=="0";let got=ns.filter(x=>getStatus(x.id)==="present").length;
+ let out="";Object.entries(grouped()).forEach(([g,ns])=>{if(!ns.length)return;let open=openGroups.has(g);let got=ns.filter(x=>getStatus(x.id)==="present").length;
  out+=`<div class="instrument"><button class="instrument-head" onclick="toggleGroup('${esc(g)}')"><div class="inst-left"><span class="chev">${open?"⌄":"›"}</span><span class="inst-name">${g}</span><span class="count">${ns.length} 人</span></div><span class="count">${got} 已到</span></button>`;
  if(open){out+='<div class="people">';ns.forEach(x=>{let s=getStatus(x.id),a=attendance[x.id],note=a?.note||"";out+=`<div class="person"><div class="name">${esc(x.name)}${x.part?`<span class="role">${esc(x.part)}</span>`:""}<span class="role">${esc(x.role)}</span></div>
  <label class="att-box"><input type="checkbox" ${s==="present"?"checked":""} onchange="setStatus(${x.id},this.checked?'present':'absent')"> 簽到</label>
@@ -168,7 +168,7 @@ async function setStatus(personId,status){
  if(error){console.error(error);toast("儲存失敗");render();return}
  attendance[personId]=data;render();
 }
-function toggleGroup(g){let k="open_"+g;localStorage.setItem(k,localStorage.getItem(k)==="0"?"1":"0");render()}
+function toggleGroup(g){if(openGroups.has(g))openGroups.delete(g);else openGroups.add(g);render()}
 function setRole(r,b){currentRole=r;document.querySelectorAll("#roleFilters .filter").forEach(x=>x.classList.remove("active"));b.classList.add("active");render()}
 function openNote(id){noteTarget=id;let p=people.find(x=>x.id===id);document.getElementById("noteTitle").textContent=(p?.name||"")+"｜特殊狀況備註";document.getElementById("noteText").value=attendance[id]?.note||"";document.getElementById("noteModal").classList.add("show")}
 function closeNote(){document.getElementById("noteModal").classList.remove("show")}
@@ -187,11 +187,21 @@ async function editDate(id){let c=courses.find(x=>x.id===id);let d=prompt("修�
 async function removeDate(id){let c=courses.find(x=>x.id===id);if(!confirm("確定刪除「"+c.course_date+"」？該堂課的簽到資料也會一起刪除。"))return;let {error}=await sb.from("courses").delete().eq("id",id);if(error){alert("刪除失敗："+error.message);return}currentDateId=null;await loadAll();renderAdminAll()}
 function useDate(id){currentDateId=id;showMain();loadAll()}
 function populateGroupSelect(id){document.getElementById(id).innerHTML=instrumentOrder.map(g=>`<option>${g}</option>`).join("")}
-function renderPeopleAdmin(){populateGroupSelect("personGroup");let rows="";people.forEach(p=>{rows+=`<div class="admin-row"><span><b>${esc(p.name)}</b> <span class="role">${esc(p.role)} · ${esc(p.instrument)}${p.part?" · "+esc(p.part):""}</span></span><span><button class="small-btn" onclick="editPerson(${p.id})">編輯</button> <button class="small-btn danger" onclick="deletePerson(${p.id})">刪除</button></span></div>`});document.getElementById("peopleAdmin").innerHTML=rows||'<div class="empty">目前沒有資料</div>'}
-async function addPerson(){let n=document.getElementById("personName").value.trim(),r=document.getElementById("personRole").value,g=document.getElementById("personGroup").value,part=document.getElementById("personPart").value.trim();if(!n||!g)return alert("請填寫姓名並選擇樂器分部");let {error}=await sb.from("people").insert({name:n,role:r,instrument:g,part,active:true});if(error){alert("新增失敗："+error.message);return}document.getElementById("personName").value="";document.getElementById("personPart").value="";await loadAll();renderPeopleAdmin();toast("人員已新增")}
+function renderPeopleAdmin(){populateGroupSelect("personGroup");let rows="";people.forEach(p=>{rows+=`<div class="admin-row"><span><b>${esc(p.name)}</b> <span class="role">${esc(p.role)} · ${esc(p.instrument)}${p.part?" · "+esc(p.part):""}</span></span><span><button class="small-btn" onclick="movePerson(${p.id},-1)">↑</button> <button class="small-btn" onclick="movePerson(${p.id},1)">↓</button> <button class="small-btn" onclick="editPerson(${p.id})">編輯</button> <button class="small-btn danger" onclick="deletePerson(${p.id})">刪除</button></span></div>`});document.getElementById("peopleAdmin").innerHTML=rows||'<div class="empty">目前沒有資料</div>'}
+async function addPerson(){let n=document.getElementById("personName").value.trim(),r=document.getElementById("personRole").value,g=document.getElementById("personGroup").value,part=document.getElementById("personPart").value.trim();if(!n||!g)return alert("請填寫姓名並選擇樂器分部");let maxOrder=Math.max(-1,...people.filter(x=>x.instrument===g).map(x=>Number(x.sort_order)||0));
+ let {error}=await sb.from("people").insert({name:n,role:r,instrument:g,part,active:true,sort_order:maxOrder+1});if(error){alert("新增失敗："+error.message);return}document.getElementById("personName").value="";document.getElementById("personPart").value="";await loadAll();renderPeopleAdmin();toast("人員已新增")}
+async function movePerson(id,direction){
+ let p=people.find(x=>x.id===id);if(!p)return;
+ let same=people.filter(x=>x.instrument===p.instrument).sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));
+ let i=same.findIndex(x=>x.id===id),j=i+direction;if(i<0||j<0||j>=same.length)return;
+ let a=same[i],b=same[j],ao=a.sort_order??i,bo=b.sort_order??j;
+ let {error}=await sb.from("people").update({sort_order:bo}).eq("id",a.id);if(error){alert("排序更新失敗："+error.message);return}
+ let r=await sb.from("people").update({sort_order:ao}).eq("id",b.id);if(r.error){alert("排序更新失敗："+r.error.message);return}
+ await loadAll();renderPeopleAdmin();toast("名單順序已更新");
+}
 function editPerson(id){let p=people.find(x=>x.id===id);document.getElementById("editId").value=id;document.getElementById("editName").value=p.name;document.getElementById("editRole").value=p.role;populateGroupSelect("editGroup");document.getElementById("editGroup").value=p.instrument;document.getElementById("editPart").value=p.part||"";document.getElementById("editModal").classList.add("show")}
 function closeEdit(){document.getElementById("editModal").classList.remove("show")}
-async function savePerson(){let id=Number(document.getElementById("editId").value),payload={name:document.getElementById("editName").value.trim(),role:document.getElementById("editRole").value,instrument:document.getElementById("editGroup").value,part:document.getElementById("editPart").value.trim()};if(!payload.name)return alert("請填寫姓名");let {error}=await sb.from("people").update(payload).eq("id",id);if(error){alert("修改失敗："+error.message);return}closeEdit();await loadAll();renderPeopleAdmin();toast("人員已更新")}
+async function savePerson(){let id=Number(document.getElementById("editId").value),old=people.find(x=>x.id===id),newInstrument=document.getElementById("editGroup").value,payload={name:document.getElementById("editName").value.trim(),role:document.getElementById("editRole").value,instrument:newInstrument,part:document.getElementById("editPart").value.trim(),sort_order:old?.instrument===newInstrument?(old.sort_order??0):Math.max(-1,...people.filter(x=>x.instrument===newInstrument).map(x=>Number(x.sort_order)||0))+1};if(!payload.name)return alert("請填寫姓名");let {error}=await sb.from("people").update(payload).eq("id",id);if(error){alert("修改失敗："+error.message);return}closeEdit();await loadAll();renderPeopleAdmin();toast("人員已更新")}
 async function deletePerson(id){let p=people.find(x=>x.id===id);if(!confirm("確定刪除「"+p.name+"」？歷史簽到紀錄也會刪除。"))return;let {error}=await sb.from("people").update({active:false}).eq("id",id);if(error){alert("刪除失敗："+error.message);return}await loadAll();renderPeopleAdmin();toast("人員已刪除")}
 async function renderStatsAdmin(){let out='<table class="stats-table"><thead><tr><th>日期</th><th>已到</th><th>請假</th><th>未到</th><th>出席率</th></tr></thead><tbody>';if(!courses.length){document.getElementById("statsAdmin").innerHTML='<div class="empty">目前沒有課程</div>';return}for(const c of courses){let {data}=await sb.from("attendance").select("status").eq("course_id",c.id);let arr=data||[],p=arr.filter(x=>x.status==="present").length,l=arr.filter(x=>x.status==="leave").length,total=people.length,rate=total?Math.round(p/total*100):0;out+=`<tr><td>${esc(c.course_date)}</td><td>${p}</td><td>${l}</td><td>${total-p-l}</td><td>${rate}%</td></tr>`}out+='</tbody></table>';document.getElementById("statsAdmin").innerHTML=out}
 sb.auth.onAuthStateChange((_event,session)=>{if(session){document.getElementById("adminBtn").style.display="none"}});
