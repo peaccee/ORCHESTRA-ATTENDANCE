@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>樂團課程簽到系統 V1</title>
+<style>
+:root{--navy:#182536;--cream:#f6f3ed;--card:#fff;--line:#ddd8cf;--gold:#b18b52;--green:#557a64;--yellow:#b88938;--red:#a75a52;--muted:#777}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--cream);color:#26303a}
+button,input,select{font:inherit}button{cursor:pointer;border:0}
+.header{background:var(--navy);color:white;padding:20px 22px;position:sticky;top:0;z-index:10}
+.header-inner{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-family:Georgia,serif;font-size:22px;letter-spacing:1px}.sub{font-size:12px;color:#cbd1d8;margin-top:4px}
+.admin-btn{background:#fff;color:var(--navy);padding:9px 14px;border-radius:8px;font-size:13px}
+.container{max-width:1100px;margin:0 auto;padding:24px 18px 60px}
+.top{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-bottom:20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 3px 12px #00000009}
+.date-row{display:flex;align-items:center;gap:10px}.date-row h1{margin:0;font-size:26px}
+.date-select{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:white}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{padding:13px 8px;text-align:center;border-right:1px solid var(--line)}.stat:last-child{border:0}
+.num{font-size:23px;font-weight:700}.label{font-size:12px;color:var(--muted);margin-top:4px}
+.progress{height:7px;background:#e8e4dc;border-radius:99px;overflow:hidden;margin-top:14px}.bar{height:100%;background:var(--green);width:0%;transition:.25s}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin:25px 2px 10px}
+.section-title h2{font-size:18px;margin:0}.hint{font-size:12px;color:var(--muted)}
+.instrument{background:white;border:1px solid var(--line);border-radius:12px;margin-bottom:9px;overflow:hidden}
+.instrument-head{width:100%;padding:15px 16px;background:white;display:flex;align-items:center;justify-content:space-between;text-align:left}
+.instrument-head:hover{background:#faf9f6}.inst-left{display:flex;align-items:center;gap:12px}.chev{font-size:18px;color:var(--muted);width:18px}.inst-name{font-weight:650}.count{font-size:12px;color:var(--muted)}
+.people{padding:4px 12px 12px;border-top:1px solid #eee}
+.person{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:11px 4px;border-bottom:1px solid #eee}
+.person:last-child{border-bottom:0}.name{font-size:15px}.role{font-size:11px;color:var(--muted);margin-left:7px}
+.status{font-size:11px;border-radius:20px;padding:5px 8px;background:#eee;color:#666}
+.status.present{background:#e5efe8;color:var(--green)}.status.leave{background:#f7ecd4;color:#936d28}
+.att-box{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;color:#777}
+.att-box input{appearance:none;width:24px;height:24px;border:2px solid #ccc;border-radius:6px;background:white;margin:0;cursor:pointer}
+.att-box input:checked{background:var(--green);border-color:var(--green);box-shadow:inset 0 0 0 4px white}
+.att-box.leave-box input:checked{background:var(--yellow);border-color:var(--yellow)}
+.note{grid-column:1/-1;color:#806d50;font-size:12px;background:#faf6ed;padding:7px 9px;border-radius:7px}
+.empty{padding:16px;color:#999;font-size:13px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.filter{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:white;color:#555}.filter.active{background:var(--navy);color:white}
+#admin{display:none}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.admin-list{max-height:420px;overflow:auto}.admin-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;gap:10px}
+.small-btn{padding:6px 9px;border-radius:7px;background:#eee;color:#555;font-size:12px}.danger{color:#a75a52}.add-row{display:flex;gap:8px;margin-top:12px}.add-row input{flex:1;padding:9px;border:1px solid var(--line);border-radius:8px}.primary{background:var(--navy);color:white;padding:9px 13px;border-radius:8px}
+.modal{display:none;position:fixed;inset:0;background:#0007;z-index:30;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.modal-box{background:white;border-radius:14px;padding:22px;width:min(430px,100%)}.modal-box h3{margin-top:0}.modal-box textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+@media(max-width:760px){.top,.admin-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(4,1fr)}.stat{padding:10px 3px}.num{font-size:19px}.container{padding:18px 12px 45px}.header{padding:15px}.brand{font-size:18px}.person{grid-template-columns:1fr auto auto}.date-row{align-items:flex-start;flex-direction:column}.date-select{width:100%}}
+</style>
+</head>
+<body>
+<header class="header"><div class="header-inner">
+<div><div class="brand">ORCHESTRA ATTENDANCE</div><div class="sub">樂團課程簽到系統 · V1</div></div>
+<button class="admin-btn" onclick="requestAdmin()">🔒 管理模式</button>
+</div></header>
+
+<main class="container" id="main">
+<div class="top">
+<div class="panel">
+<div class="date-row"><div><div class="sub" style="color:#777">本次課程</div><h1 id="dateTitle">9/16</h1></div>
+<select class="date-select" id="dateSelect" onchange="changeDate(this.value)"></select></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+</div>
+<div class="panel"><div class="stats">
+<div class="stat"><div class="num" id="presentN">0</div><div class="label">已到</div></div>
+<div class="stat"><div class="num" id="leaveN">0</div><div class="label">請假</div></div>
+<div class="stat"><div class="num" id="absentN">0</div><div class="label">未簽到</div></div>
+<div class="stat"><div class="num" id="rateN">0%</div><div class="label">出席率</div></div>
+</div></div>
+</div>
+
+<div class="section-title"><h2>今日簽到</h2><span class="hint">點開樂器後找到自己的名字</span></div>
+<div class="toolbar">
+<button class="filter active" onclick="setRole('all',this)">全部</button><button class="filter" onclick="setRole('學員',this)">學員</button><button class="filter" onclick="setRole('聯演老師',this)">聯演老師</button><button class="filter" onclick="setRole('駐團老師',this)">駐團老師</button>
+</div>
+<div id="instruments"></div>
+</main>
+
+<main class="container" id="admin">
+<div class="section-title"><h2>管理模式</h2><button class="small-btn" onclick="toggleAdmin()">返回簽到</button></div>
+<div class="toolbar admin-tabs">
+<button class="filter active" onclick="adminTab('courses',this)">📅 課程管理</button>
+<button class="filter" onclick="adminTab('people',this)">👥 人員管理</button>
+<button class="filter" onclick="adminTab('stats',this)">📊 出席統計</button>
+</div>
+<div id="adminCourses" class="admin-page">
+<div class="panel"><h3>課程日期</h3><div id="dateAdmin" class="admin-list"></div>
+<div class="add-row"><input id="newDate" placeholder="例如 1/20"><button class="primary" onclick="addDate()">新增日期</button></div></div>
+<div class="panel"><h3>管理員設定</h3>
+<p style="font-size:13px;color:#777;line-height:1.6">管理模式受到密碼保護。預設密碼為 <b>1234</b>，建議第一次使用後立即修改。</p>
+<div class="add-row"><input id="oldPassword" type="password" placeholder="目前密碼"><input id="newPassword" type="password" placeholder="新密碼"><button class="primary" onclick="changePassword()">修改密碼</button></div>
+</div>
+</div>
+<div id="adminPeople" class="admin-page" style="display:none">
+<div class="panel">
+<h3>人員名單</h3>
+<div class="add-row" style="flex-wrap:wrap">
+<input id="personName" placeholder="姓名">
+<select id="personRole" class="date-select"><option>學員</option><option>聯演老師</option><option>駐團老師</option></select>
+<select id="personGroup" class="date-select"></select>
+<input id="personPart" placeholder="聲部（選填）">
+<button class="primary" onclick="addPerson()">＋新增人員</button>
+</div>
+<div id="peopleAdmin" class="admin-list" style="margin-top:12px"></div>
+</div>
+</div>
+<div id="adminStats" class="admin-page" style="display:none">
+<div class="panel"><h3>各堂課出席統計</h3><div id="statsAdmin"></div></div>
+</div>
+</main>
+
+<div class="modal" id="passwordModal"><div class="modal-box">
+<h3>管理員登入</h3>
+<p style="font-size:13px;color:#777;margin-top:-4px">請輸入管理員密碼才能進入管理模式。</p>
+<input id="adminPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="管理員密碼" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px" onkeydown="if(event.key==='Enter')verifyAdmin()">
+<div id="passwordError" style="display:none;color:var(--red);font-size:12px;margin-top:8px">密碼錯誤，請再試一次。</div>
+<div class="modal-actions"><button class="small-btn" onclick="closePassword()">取消</button><button class="primary" onclick="verifyAdmin()">登入</button></div>
+</div></div>
+
+<div class="modal" id="noteModal"><div class="modal-box">
+<h3 id="noteTitle">特殊狀況備註</h3><textarea id="noteText" placeholder="例如：預計遲到 30 分鐘"></textarea>
+<div class="modal-actions"><button class="small-btn" onclick="closeNote()">取消</button><button class="primary" onclick="saveNote()">儲存</button></div>
+</div></div>
+
+<script>
+const dates=["9/16","9/23","10/7","10/14","10/21","11/4","11/11","11/25","12/2","12/9","12/23","12/30","1/6","1/13","1/16"];
+const groups={
+"第一小提琴":["閻錫安","廖啓良","陳傳祐","劉品志","陳禹廷","葉曜愷","陳曉安","翁僑連","吳竑昇","陳鈺婷","張拉拉","李昀庭","黃韻帆","宋介甫","蘇俊瑄"],
+"第二小提琴":["楊博翔","Andres Obregon","李念萱","楊珺宇","吳伯昌","徐芳瑩","許涵婷","謝旻珊","周頌鈞","謝念育","胡增文","張睿耘","琬晴","劉美麗"],
+"中提琴":["洪小芹","陳顥"],
+"大提琴":["林晏存","華芸瑋","李志謙","林怡秀","賴妍伶","周鈺倫","蕭雲雲","喬楢","周冠伶","李采蔓","胡皓婷","賴佳惠"],
+"低音提琴":[],
+"長笛":["picc./fl.1 賴卿雯","picc./fl.1 劉育瑄","fl.1 陳婷","fl.1/2 葉芷妍","fl.2 鄭文婷","fl.2 黃渼棻"],
+"雙簧管":["Ob.1/E.H. 陳昶赫"],
+"單簧管":["Cl.solo 呂振宇","Cl.1 許于凡","張敬儀","連笠庭"],
+"低音管":["王傳泓"],
+"法國號":[],
+"小號":["郭蕎薪","積田航佑","王佳恩","Tp.2/3 李家棋","Tp.2/3 王萬能"],
+"長號":["陳玉純","張與蘭","吳孟科"],
+"低音號":["陳建仁"],
+"打擊":["陳品璇","劉子寧"]
+};
+const roles={};
+const teacherGroups={"聯演老師":{"第一小提琴":[],"第二小提琴":["吳宜芃"],"中提琴":[],"大提琴":[],"低音提琴":[],"雙簧管":[],"法國號":[],"小號":[],"長號":[],"打擊":[]},"駐團老師":{"第一小提琴":["黃姿旋"],"第二小提琴":["孫紹恩"],"中提琴":["郭庭禎","呂紀諠"],"大提琴":["陳建穎","黃佩藝"],"低音提琴":["陳光展"],"雙簧管":["梁薰"],"單簧管":["Cl.2 黃郁程"],"低音管":["曹雅彤"],"法國號":["楊文欽","廖祥霖"],"小號":["Tp.1 查修齊"],"長號":["Tb.1 蔣格西","B.Trb. 劉奕倫"],"低音號":[],"打擊":["林則安"]}};
+Object.keys(groups).forEach(g=>groups[g].forEach(n=>roles[n]="學員"));
+Object.entries(teacherGroups).forEach(([r,gs])=>Object.entries(gs).forEach(([g,ns])=>ns.forEach(n=>{roles[n]=r; if(!groups[g])groups[g]=[]; groups[g].push(n)})));
+
+let currentDate=dates[0], currentRole="all", state=JSON.parse(localStorage.getItem("orchV1")||"{}"), noteTarget=null;
+function key(name){return currentDate+"|"+name}
+function getStatus(n){return state[key(n)]?.status||"absent"}
+function setStatus(n,s){state[key(n)]={...(state[key(n)]||{}),status:s};save();render()}
+function save(){localStorage.setItem("orchV1",JSON.stringify(state))}
+function changeDate(d){currentDate=d;document.getElementById("dateTitle").textContent=d;render()}
+function setRole(r,b){currentRole=r;document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));b.classList.add("active");render()}
+function render(){
+let total=0,present=0,leave=0; Object.values(groups).forEach(ns=>ns.forEach(n=>{if(currentRole==="all"||roles[n]===currentRole){total++;if(getStatus(n)==="present")present++;if(getStatus(n)==="leave")leave++}}));
+document.getElementById("presentN").textContent=present;document.getElementById("leaveN").textContent=leave;document.getElementById("absentN").textContent=total-present-leave;
+document.getElementById("rateN").textContent=total?Math.round(present/total*100)+"%":"0%";document.getElementById("bar").style.width=total?Math.round(present/total*100)+"%":"0%";
+let out="";Object.entries(groups).forEach(([g,ns])=>{let visible=ns.filter(n=>currentRole==="all"||roles[n]===currentRole);if(!visible.length)return;let open=localStorage.getItem("open_"+g)!=="0";out+=`<div class="instrument"><button class="instrument-head" onclick="toggleGroup('${esc(g)}')"><div class="inst-left"><span class="chev">${open?"⌄":"›"}</span><span class="inst-name">${g}</span><span class="count">${visible.length} 人</span></div><span class="count">${visible.filter(n=>getStatus(n)==="present").length} 已到</span></button>`;if(open){out+='<div class="people">';visible.forEach(n=>{let s=getStatus(n), note=state[key(n)]?.note||"";out+=`<div class="person"><div class="name">${esc(n)}<span class="role">${roles[n]}</span></div><label class="att-box"><input type="checkbox" ${s==="present"?"checked":""} onchange="setStatus('${esc(n)}',this.checked?'present':'absent')"> 簽到</label><label class="att-box leave-box"><input type="checkbox" ${s==="leave"?"checked":""} onchange="setStatus('${esc(n)}',this.checked?'leave':'absent')"> 請假</label><button class="small-btn" onclick="openNote('${esc(n)}')">備註</button>${note?`<div class="note">📝 ${esc(note)}</div>`:""}</div>`});out+="</div>"}out+="</div>"});document.getElementById("instruments").innerHTML=out}
+function cycle(n){let s=getStatus(n);setStatus(n,s==="absent"?"present":s==="present"?"leave":"absent")}
+function toggleGroup(g){let k="open_"+g;localStorage.setItem(k,localStorage.getItem(k)==="0"?"1":"0");render()}
+function openNote(n){noteTarget=n;document.getElementById("noteTitle").textContent=n+"｜特殊狀況備註";document.getElementById("noteText").value=state[key(n)]?.note||"";document.getElementById("noteModal").classList.add("show")}
+function closeNote(){document.getElementById("noteModal").classList.remove("show")}
+function saveNote(){state[key(noteTarget)]={...(state[key(noteTarget)]||{}),note:document.getElementById("noteText").value.trim()};save();closeNote();render()}
+function toggleAdmin(){let a=document.getElementById("admin"),m=document.getElementById("main");a.style.display=a.style.display==="block"?"none":"block";m.style.display=a.style.display==="block"?"none":"block";if(a.style.display==="block")renderAdmin()}
+function renderAdmin(){document.getElementById("dateAdmin").innerHTML=dates.map((d,i)=>`<div class="admin-row"><span>${d}</span><span><button class="small-btn" onclick="useDate('${d}')">查看</button> ${i>0?`<button class="small-btn danger" onclick="removeDate(${i})">刪除</button>`:""}</span></div>`).join("")}
+function useDate(d){currentDate=d;toggleAdmin();document.getElementById("dateSelect").value=d;render()}
+function addDate(){let d=document.getElementById("newDate").value.trim();if(!d)return;if(!dates.includes(d)){dates.push(d);let o=document.createElement("option");o.value=d;o.textContent=d;document.getElementById("dateSelect").appendChild(o)}document.getElementById("newDate").value="";renderAdmin()}
+function removeDate(i){if(confirm("確定刪除課程日期 "+dates[i]+"？")){dates.splice(i,1);if(currentDate===dates[i])currentDate=dates[0];
+
+
+function getAdminPassword(){return localStorage.getItem("orchAdminPassword")||"1234"}
+function requestAdmin(){
+ document.getElementById("adminPassword").value="";
+ document.getElementById("passwordError").style.display="none";
+ document.getElementById("passwordModal").classList.add("show");
+ setTimeout(()=>document.getElementById("adminPassword").focus(),80);
+}
+function closePassword(){document.getElementById("passwordModal").classList.remove("show")}
+function verifyAdmin(){
+ if(document.getElementById("adminPassword").value===getAdminPassword()){closePassword();toggleAdmin()}
+ else{document.getElementById("passwordError").style.display="block";document.getElementById("adminPassword").select()}
+}
+function changePassword(){
+ let oldp=document.getElementById("oldPassword").value, newp=document.getElementById("newPassword").value;
+ if(oldp!==getAdminPassword())return alert("目前密碼錯誤");
+ if(newp.length<4)return alert("新密碼至少需要 4 碼");
+ localStorage.setItem("orchAdminPassword",newp);
+ document.getElementById("oldPassword").value="";document.getElementById("newPassword").value="";
+ alert("管理員密碼已修改");
+}
+
+function adminTab(tab,b){
+ document.querySelectorAll(".admin-tabs .filter").forEach(x=>x.classList.remove("active")); b.classList.add("active");
+ document.getElementById("adminCourses").style.display=tab==="courses"?"block":"none";
+ document.getElementById("adminPeople").style.display=tab==="people"?"block":"none";
+ document.getElementById("adminStats").style.display=tab==="stats"?"block":"none";
+ if(tab==="people")renderPeopleAdmin(); if(tab==="stats")renderStatsAdmin();
+}
+function renderPeopleAdmin(){
+ document.getElementById("personGroup").innerHTML=Object.keys(groups).map(g=>`<option>${esc(g)}</option>`).join("");
+ let rows="";
+ Object.entries(groups).forEach(([g,ns])=>ns.forEach(n=>{
+  rows+=`<div class="admin-row"><span><b>${esc(n)}</b> <span class="role">${roles[n]} · ${esc(g)}</span></span>
+  <span><button class="small-btn" onclick="editPerson('${esc(n)}')">編輯</button> <button class="small-btn danger" onclick="deletePerson('${esc(n)}','${esc(g)}')">刪除</button></span></div>`;
+ }));
+ document.getElementById("peopleAdmin").innerHTML=rows||'<div class="empty">目前沒有資料</div>';
+}
+function addPerson(){
+ let n=document.getElementById("personName").value.trim(),r=document.getElementById("personRole").value,g=document.getElementById("personGroup").value,part=document.getElementById("personPart").value.trim();
+ if(!n||!g)return alert("請填寫姓名並選擇樂器分部");
+ if(roles[n])return alert("這個姓名已存在");
+ let display=part?part+" "+n:n; groups[g].push(display); roles[display]=r;
+ document.getElementById("personName").value="";document.getElementById("personPart").value="";
+ renderPeopleAdmin();render();
+}
+function findPerson(n){for(const [g,ns] of Object.entries(groups)){const i=ns.indexOf(n);if(i>=0)return {g,i}}}
+function deletePerson(n,g){
+ if(!confirm("確定刪除「"+n+"」？"))return;
+ let f=findPerson(n);if(f)groups[f.g].splice(f.i,1);delete roles[n];renderPeopleAdmin();render();
+}
+function editPerson(n){
+ let f=findPerson(n);if(!f)return;
+ let nn=prompt("修改姓名（如需修改聲部也可直接一起輸入）",n);if(!nn||nn===n)return;
+ let r=roles[n],g=f.g;groups[g][f.i]=nn;roles[nn]=r;delete roles[n];
+ Object.keys(state).filter(k=>k.endsWith("|"+n)).forEach(k=>{state[k.replace("|"+n,"|"+nn)]=state[k];delete state[k]});save();
+ renderPeopleAdmin();render();
+}
+function renderStatsAdmin(){
+ let all=[];
+ dates.forEach(d=>{
+  let total=0,p=0,l=0;
+  Object.values(groups).forEach(ns=>ns.forEach(n=>{total++;let s=state[d+"|"+n]?.status;if(s==="present")p++;if(s==="leave")l++}));
+  all.push(`<div class="admin-row"><span><b>${d}</b></span><span>已到 ${p}　請假 ${l}　未到 ${total-p-l}　出席率 ${total?Math.round(p/total*100):0}%</span></div>`);
+ });
+ document.getElementById("statsAdmin").innerHTML=all.join("")||'<div class="empty">目前沒有課程</div>';
+}
+
+document.getElementById("dateSelect").innerHTML=dates.map(d=>`<option>${d}</option>`).join("");document.getElementById("dateSelect").value=currentDate;document.getElementById("dateTitle").textContent=currentDate;renderAdmin();render()}}
+function esc(s){return s.replaceAll("&","&amp;").replaceAll("'","&#39;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+
+
+
+function getAdminPassword(){return localStorage.getItem("orchAdminPassword")||"1234"}
+function requestAdmin(){
+ document.getElementById("adminPassword").value="";
+ document.getElementById("passwordError").style.display="none";
+ document.getElementById("passwordModal").classList.add("show");
+ setTimeout(()=>document.getElementById("adminPassword").focus(),80);
+}
+function closePassword(){document.getElementById("passwordModal").classList.remove("show")}
+function verifyAdmin(){
+ if(document.getElementById("adminPassword").value===getAdminPassword()){closePassword();toggleAdmin()}
+ else{document.getElementById("passwordError").style.display="block";document.getElementById("adminPassword").select()}
+}
+function changePassword(){
+ let oldp=document.getElementById("oldPassword").value, newp=document.getElementById("newPassword").value;
+ if(oldp!==getAdminPassword())return alert("目前密碼錯誤");
+ if(newp.length<4)return alert("新密碼至少需要 4 碼");
+ localStorage.setItem("orchAdminPassword",newp);
+ document.getElementById("oldPassword").value="";document.getElementById("newPassword").value="";
+ alert("管理員密碼已修改");
+}
+
+function adminTab(tab,b){
+ document.querySelectorAll(".admin-tabs .filter").forEach(x=>x.classList.remove("active")); b.classList.add("active");
+ document.getElementById("adminCourses").style.display=tab==="courses"?"block":"none";
+ document.getElementById("adminPeople").style.display=tab==="people"?"block":"none";
+ document.getElementById("adminStats").style.display=tab==="stats"?"block":"none";
+ if(tab==="people")renderPeopleAdmin(); if(tab==="stats")renderStatsAdmin();
+}
+function renderPeopleAdmin(){
+ document.getElementById("personGroup").innerHTML=Object.keys(groups).map(g=>`<option>${esc(g)}</option>`).join("");
+ let rows="";
+ Object.entries(groups).forEach(([g,ns])=>ns.forEach(n=>{
+  rows+=`<div class="admin-row"><span><b>${esc(n)}</b> <span class="role">${roles[n]} · ${esc(g)}</span></span>
+  <span><button class="small-btn" onclick="editPerson('${esc(n)}')">編輯</button> <button class="small-btn danger" onclick="deletePerson('${esc(n)}','${esc(g)}')">刪除</button></span></div>`;
+ }));
+ document.getElementById("peopleAdmin").innerHTML=rows||'<div class="empty">目前沒有資料</div>';
+}
+function addPerson(){
+ let n=document.getElementById("personName").value.trim(),r=document.getElementById("personRole").value,g=document.getElementById("personGroup").value,part=document.getElementById("personPart").value.trim();
+ if(!n||!g)return alert("請填寫姓名並選擇樂器分部");
+ if(roles[n])return alert("這個姓名已存在");
+ let display=part?part+" "+n:n; groups[g].push(display); roles[display]=r;
+ document.getElementById("personName").value="";document.getElementById("personPart").value="";
+ renderPeopleAdmin();render();
+}
+function findPerson(n){for(const [g,ns] of Object.entries(groups)){const i=ns.indexOf(n);if(i>=0)return {g,i}}}
+function deletePerson(n,g){
+ if(!confirm("確定刪除「"+n+"」？"))return;
+ let f=findPerson(n);if(f)groups[f.g].splice(f.i,1);delete roles[n];renderPeopleAdmin();render();
+}
+function editPerson(n){
+ let f=findPerson(n);if(!f)return;
+ let nn=prompt("修改姓名（如需修改聲部也可直接一起輸入）",n);if(!nn||nn===n)return;
+ let r=roles[n],g=f.g;groups[g][f.i]=nn;roles[nn]=r;delete roles[n];
+ Object.keys(state).filter(k=>k.endsWith("|"+n)).forEach(k=>{state[k.replace("|"+n,"|"+nn)]=state[k];delete state[k]});save();
+ renderPeopleAdmin();render();
+}
+function renderStatsAdmin(){
+ let all=[];
+ dates.forEach(d=>{
+  let total=0,p=0,l=0;
+  Object.values(groups).forEach(ns=>ns.forEach(n=>{total++;let s=state[d+"|"+n]?.status;if(s==="present")p++;if(s==="leave")l++}));
+  all.push(`<div class="admin-row"><span><b>${d}</b></span><span>已到 ${p}　請假 ${l}　未到 ${total-p-l}　出席率 ${total?Math.round(p/total*100):0}%</span></div>`);
+ });
+ document.getElementById("statsAdmin").innerHTML=all.join("")||'<div class="empty">目前沒有課程</div>';
+}
+
+document.getElementById("dateSelect").innerHTML=dates.map(d=>`<option value="${d}">${d}</option>`).join("");document.getElementById("dateSelect").value=currentDate;render();
+</script>
+</body>
+</html>
